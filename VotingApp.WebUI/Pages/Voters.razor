@@ -1,0 +1,79 @@
+﻿@page "/voters"
+@inject HttpClient Http
+@using VotingApp.Application.DataTransferObjects
+
+<PageTitle>Index</PageTitle>
+
+<h1>Voters list:</h1>
+
+<RegistrationComponent Subject="Voter" Register="RegisterVoter"></RegistrationComponent>
+
+@if (voters == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Has Voted</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var voter in voters)
+            {
+                <tr>
+                    <td>
+                        @voter.Name
+                    </td>
+                    <td>
+                        @if (voter.HasVoted){
+                            <span class="oi oi-check" style="color: green;"></span>
+                        }else{
+                            <span class="oi oi-circle-x" style="color: red;"></span>
+                        }
+                        
+
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+
+@code{
+    private VoterDTO[]? voters;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchVotersList();
+
+    }
+
+    private async Task FetchVotersList()
+    {
+        voters = await Http.GetFromJsonAsync<VoterDTO[]>("https://localhost:7014/api/Voter/voters");
+    }
+
+    public async Task<HttpResponseDTO> RegisterVoter(string VoterName)
+    {
+        var registerRequestDTO = new RegisterRequestDTO()
+        {
+            Name = VoterName
+        };
+        using var response = await Http.PostAsJsonAsync("https://localhost:7014/api/Voter/register-voter", registerRequestDTO);
+
+        var result = await response.Content.ReadFromJsonAsync<HttpResponseDTO>();
+
+        await FetchVotersList();
+
+        StateHasChanged();
+
+        return result;
+    }
+
+}

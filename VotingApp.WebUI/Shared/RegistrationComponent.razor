@@ -1,0 +1,85 @@
+﻿@using VotingApp.Application.DataTransferObjects
+
+<button class="btn btn-outline-success" @onclick="Open"><span class="oi oi-plus"></span> Register @Subject</button>
+
+<div class="modal @modalClass" tabindex="-1" role="dialog" style="display:@modalDisplay; overflow-y: auto;">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Register Candidate</h5>
+                <button type="button" class="btn btn-outline-danger close" data-dismiss="modal" aria-label="Close" @onclick="Close">
+                    <span><span class="oi oi-x" aria-hidden="true"></span></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label>Name: <input type="text" @bind-value="Name" /></label>
+            </div>
+            <div class="@messageClass">
+                @messageValue
+            </div>
+            <div class="modal-footer">
+                
+                <button class="btn btn-outline-success" @onclick="BtnRegisterOnClick">Register</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showBackdrop)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+@code {
+    [Parameter]
+    public string Subject { get; set; }
+    [Parameter]
+    public Func<string, Task<HttpResponseDTO>> Register { get; set; }
+
+    string Name;
+
+
+
+    string modalClass = "fade";
+    string modalDisplay = "none";
+    bool showBackdrop = false;
+    string messageClass = String.Empty;
+    string messageValue = String.Empty;
+
+
+    private async void BtnRegisterOnClick(){
+        var response = await Register(Name);
+        if (response.StatusCode == 200)
+        {
+            StateHasChanged();
+            Close();
+            StateHasChanged();
+        }else{
+            Console.WriteLine(response.Message);
+            messageClass = "alert alert-danger";
+            messageValue = response.Message;
+        }
+
+    }
+    private void InpNameOnChange(){
+
+        Console.WriteLine(Name);
+    }
+
+    public void Open()
+    {
+        modalDisplay = "block;";
+        modalClass = "show";
+        showBackdrop = true;
+    }
+
+    public void Close()
+    {
+        modalDisplay = "none";
+        modalClass = String.Empty;
+        showBackdrop = false;
+        messageClass = String.Empty;
+        messageValue = String.Empty;
+        Name = String.Empty;
+    }
+
+}

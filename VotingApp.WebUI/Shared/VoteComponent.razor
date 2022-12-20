@@ -1,0 +1,111 @@
+﻿@using VotingApp.Application.DataTransferObjects
+
+<button class="btn btn-outline-primary" @onclick="Open"><span class="oi oi-task"></span> Vote</button>
+
+<div class="modal @modalClass" tabindex="-1" role="dialog" style="display:@modalDisplay; overflow-y: auto;">
+    <div class="modal-dialog " role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Vote</h5>
+                <button type="button" class="btn btn-outline-danger close" data-dismiss="modal" aria-label="Close" @onclick="Close">
+                    <span><span class="oi oi-x" aria-hidden="true"></span></span>
+                </button>
+            </div>
+            @if (Voters == null || Candidates == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else{
+                <div class="modal-body">
+                    <span>I am:</span>
+                    <select class="form-control" @bind="@voterId">
+                        @foreach(var voter in Voters){
+                            if (!voter.HasVoted){
+                                <option value="@voter.Id">@voter.Name</option>
+                            }
+                        }
+                    </select>
+                    <span>I vote for:</span>
+                    <select class="form-control" @bind="@candidateId">
+                        @foreach (var candidate in Candidates)
+                        {
+                        
+                            <option value="@candidate.Id">@candidate.Name</option>
+                        }
+                    </select>
+                
+                </div>
+            }
+            <div class="@messageClass">
+                @messageValue
+            </div>
+            <div class="modal-footer">
+                
+                <button class="btn btn-outline-success" @onclick="BtnVoteOnClick ">Vote</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showBackdrop)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+@code {
+    [Parameter]
+    public Func<int,int,Task<HttpResponseDTO>> Vote { get; set; }
+    [Parameter]
+    public CandidateDTO[]? Candidates { get; set; }
+    [Parameter]
+    public VoterDTO[]? Voters { get; set; }
+
+    private int voterId { get; set; }
+    private int candidateId { get; set; }
+
+    string Name;
+
+
+
+    string modalClass = "fade";
+    string modalDisplay = "none";
+    bool showBackdrop = false;
+    string messageClass = String.Empty;
+    string messageValue = String.Empty;
+
+
+    private async void BtnVoteOnClick(){
+        var response = await Vote(voterId,candidateId);
+        if (response.StatusCode == 200)
+        {
+            Close();
+        }else{
+            Console.WriteLine(response.Message);
+            messageClass = "alert alert-danger";
+            messageValue = response.Message;
+        }
+
+    }
+    private void InpNameOnChange(){
+
+        Console.WriteLine(Name);
+    }
+
+    public void Open()
+    {
+        modalDisplay = "block;";
+        modalClass = "show";
+        showBackdrop = true;
+    }
+
+    public void Close()
+    {
+        modalDisplay = "none";
+        modalClass = String.Empty;
+        showBackdrop = false;
+        messageClass = String.Empty;
+        messageValue = String.Empty;
+        voterId = 0;
+        candidateId = 0;
+    }
+
+}

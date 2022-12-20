@@ -1,0 +1,98 @@
+﻿@page "/"
+@using System.Text.Json
+@using VotingApp.Application.DataTransferObjects
+@using System.Threading;
+@inject HttpClient Http
+
+<PageTitle>Voting Result</PageTitle>
+
+<h1>Voting Result</h1>
+
+<RegistrationComponent Subject="Candidate" Register="RegisterCandidate"></RegistrationComponent>
+<VoteComponent Vote="Vote" Candidates="candidates" Voters="voters"></VoteComponent>
+
+@if (candidates == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Name</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var candidate in candidates.Select((value, i)=> new { i, value}))
+            {
+                <tr>
+                    <td>@(candidate.i+1)</td>
+                    <td>@candidate.value.Name</td>
+                    <td>@candidate.value.Votes</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private CandidateDTO[]? candidates;
+    private VoterDTO[]? voters;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchCandidatesList();
+        await FetchVotersList();
+        FetchCandidatesListInterval();
+    }
+
+    private void FetchCandidatesListInterval(){
+        var timer = new Timer(new TimerCallback(async _ =>
+        {
+            await FetchCandidatesList();
+            InvokeAsync(() =>
+            {
+                StateHasChanged();
+            });
+        }), null, 1000, 1000);
+    }
+    private async Task FetchCandidatesList(){
+        candidates = await Http.GetFromJsonAsync<CandidateDTO[]>("https://localhost:7014/api/Candidate/candidates");
+    }
+    private async Task FetchVotersList()
+    {
+        voters = await Http.GetFromJsonAsync<VoterDTO[]>("https://localhost:7014/api/Voter/voters");
+    }
+    public async Task<HttpResponseDTO> RegisterCandidate(string candidateName)
+    {
+        var registerRequestDTO = new RegisterRequestDTO()
+            {
+                Name = candidateName
+            };
+        using var response = await Http.PostAsJsonAsync("https://localhost:7014/api/Candidate/register-candidate", registerRequestDTO);
+
+        var result = await response.Content.ReadFromJsonAsync<HttpResponseDTO>();
+        return result;
+    }
+    public async Task<HttpResponseDTO> Vote(int voterId, int candidateId)
+    {
+        var voteDTO = new VoteDTO()
+            {
+                VoterId = voterId,
+                CandidateId = candidateId,
+            };
+
+        using var response = await Http.PostAsJsonAsync("https://localhost:7014/api/Vote/vote", voteDTO);
+        var result = await response.Content.ReadFromJsonAsync<HttpResponseDTO>();
+        if(result.StatusCode == 200){
+            await FetchVotersList();
+        }
+
+        return result;
+    }
+    
+}
